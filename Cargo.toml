@@ -10,7 +10,7 @@ eframe = { version = "0.29.1", features = [
 ] }
 
 # For image support:
-egui_extras = { version = "0.29.1", features = ["default", "file", "image"] }
+egui_extras = { version = "0.29.1", features = ["default", "file", "image", "gif"] }
 
 #env_logger = { version = "0.11.5", default-features = false, features = [
 #    "auto-color",
@@ -19,4 +19,3 @@ egui_extras = { version = "0.29.1", features = ["default", "file", "image"] }
 #eframe = "0.29.1"
 #egui_extras = "0.29.1"
 env_logger = "0.11.5"
-image = { version = "0.25", features = ["jpeg", "png"] }
