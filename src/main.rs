@@ -23,6 +23,15 @@ struct MainWindow {
     icon_size: f32
 }
 
+impl Default for MainWindow {
+    fn default() -> Self {
+        Self {
+            location: "/home/rose/.steam/steam/steamapps/workshop/content/431960".to_owned(),
+            icon_size: 200.0,
+        }
+    }
+}
+
 impl MainWindow {
     fn get_string(&self, wallpaper_dir: String) -> Result<String, std::io::Error> {
         let sub_dir = format!("{base_dir}/{wallpaper_dir}/", base_dir = self.location, wallpaper_dir = wallpaper_dir);
@@ -59,15 +68,6 @@ impl MainWindow {
         if ui.button(screen.clone()).clicked() {
             println!("Screen {}: {}", screen.clone(), wallpaper);
             ui.close_menu();
-        }
-    }
-}
-
-impl Default for MainWindow {
-    fn default() -> Self {
-        Self {
-            location: "/home/rose/.steam/steam/steamapps/workshop/content/431960".to_owned(),
-            icon_size: 200.0,
         }
     }
 }
