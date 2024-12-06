@@ -1,16 +1,13 @@
-use std::fmt::format;
 use std::path::{Path, PathBuf};
 use eframe::egui;
 use eframe::egui::{Image, Vec2};
 
 fn main() -> eframe::Result {
-    println!("Starting");
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_app_id("wallpaper-manager").with_inner_size([320.0, 240.0]),
         ..Default::default()
     };
-    println!("Running");
     eframe::run_native(
         "WallpaperManager",
         options,
@@ -24,6 +21,7 @@ fn main() -> eframe::Result {
 struct WallpaperInfo {
     /// Id of wallpaper (directory without full path of other files)
     id: String,
+    /// Full path of wallpaper files with id.
     full_path: PathBuf,
     /// Full path to preview file.
     preview_file: String,
@@ -81,7 +79,7 @@ impl MainWindow {
         for path in paths {
             let path = path?.path();
             //result.push(path.file_name().unwrap().to_str().unwrap().to_owned());
-            result.push(WallpaperInfo::new(path).unwrap());
+            result.push(WallpaperInfo::new(path)?);
         }
         if result.is_empty() {
             return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Directory empty").into());
