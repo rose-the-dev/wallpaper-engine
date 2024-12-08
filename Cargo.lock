@@ -1003,6 +1003,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f25c0e292a7ca6d6498557ff1df68f32c99850012b6ea401cf8daf771f22ff53"
 
 [[package]]
+name = "duplicate"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97af9b5f014e228b33e77d75ee0e6e87960124f0f4b16337b586a6bec91867b1"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "proc-macro2-diagnostics",
+]
+
+[[package]]
 name = "ecolor"
 version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1062,6 +1073,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-modal"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "297fa5697b1048198cc12f5f101312a6fcae42e55a637c861a316d6028797e42"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "egui-wgpu"
 version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1096,6 +1116,27 @@ dependencies = [
  "web-time",
  "webbrowser",
  "winit",
+]
+
+[[package]]
+name = "egui_dialogs"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47185bcbfdcdaeeded8cb1eda6b7425bbf0f8edc6e3e5f33ba8588fba909e602"
+dependencies = [
+ "egui",
+ "sys-locale",
+]
+
+[[package]]
+name = "egui_dock"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fe4e3414481dea5ed59fdfa88f2e00b6ea60fbe758ca7a8636d0dbed93ab9cf"
+dependencies = [
+ "duplicate",
+ "egui",
+ "paste",
 ]
 
 [[package]]
@@ -1929,6 +1970,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "itoa"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
+
+[[package]]
 name = "jni"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2738,6 +2785,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro2-diagnostics"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af066a9c399a26e020ada66a034357a868728e72cd426f3adcd35f80d88d88c8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
+ "version_check",
+ "yansi",
+]
+
+[[package]]
 name = "profiling"
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2984,6 +3044,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ryu"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
+
+[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3035,6 +3101,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.90",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.133"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7fceb2473b9166b2294ef05efcb65a3db80803f0b03ef86a5fc88a2b85ee377"
+dependencies = [
+ "itoa",
+ "memchr",
+ "ryu",
+ "serde",
 ]
 
 [[package]]
@@ -3248,6 +3326,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.90",
+]
+
+[[package]]
+name = "sys-locale"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -3552,9 +3639,14 @@ version = "0.1.0"
 dependencies = [
  "display-info",
  "eframe",
+ "egui-modal",
+ "egui_dialogs",
+ "egui_dock",
  "egui_extras",
  "env_logger",
  "image",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -4444,6 +4536,12 @@ name = "xml-rs"
 version = "0.8.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea8b391c9a790b496184c29f7f93b9ed5b16abb306c05415b68bcc16e4d06432"
+
+[[package]]
+name = "yansi"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "yoke"

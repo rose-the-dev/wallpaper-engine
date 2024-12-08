@@ -1,6 +1,10 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use eframe::egui;
 use eframe::egui::{Image, Vec2};
+use egui_modal::Modal;
+use serde::{Deserialize, Serialize};
+//use serde_json::{Result, Value};
 
 fn main() -> eframe::Result {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
@@ -18,6 +22,23 @@ fn main() -> eframe::Result {
     )
 }
 
+#[derive(Serialize, Deserialize)]
+struct Config {
+    silent: bool,
+    audio_processing: bool,
+    screens: HashMap<String, String>, // screen name, wallpaper id
+}
+
+fn read_config() -> Config {
+    let config_data = std::fs::read_to_string("/home/rose/.local/share/wallpaper.conf").expect("Error reading config file");
+    let config: Config = serde_json::from_str(config_data.as_str()).unwrap();
+    config
+}
+
+fn write_config(config: Config) {
+    std::fs::write("/home/rose/.local/share/wallpaper.conf", serde_json::to_string(&config).expect("Error serializing config file")).expect("Error writing config file");
+}
+
 struct WallpaperInfo {
     /// Id of wallpaper (directory without full path of other files)
     id: String,
@@ -25,7 +46,6 @@ struct WallpaperInfo {
     full_path: PathBuf,
     /// Full path to preview file.
     preview_file: String,
-
 }
 
 impl Clone for WallpaperInfo {
@@ -39,7 +59,7 @@ impl Clone for WallpaperInfo {
 }
 
 impl WallpaperInfo {
-    pub fn new(path: PathBuf) -> Result<Self, std::io::Error> {
+    pub fn new(path: PathBuf) -> core::result::Result<Self, std::io::Error> {
         let id = path.as_path().file_name().unwrap().to_str().unwrap().to_owned();
         let paths = std::fs::read_dir(Path::new(path.as_path()))?;
         for path2 in paths {
@@ -60,7 +80,8 @@ impl WallpaperInfo {
 
 struct MainWindow {
     location: String,
-    icon_size: f32
+    icon_size: f32,
+    wallpaper: Option<WallpaperInfo>,
 }
 
 impl Default for MainWindow {
@@ -68,12 +89,13 @@ impl Default for MainWindow {
         Self {
             location: "/home/rose/.steam/steam/steamapps/workshop/content/431960".to_owned(),
             icon_size: 200.0,
+            wallpaper: None,
         }
     }
 }
 
 impl MainWindow {
-    fn get_wallpapers(&self) -> Result<Vec<WallpaperInfo>, std::io::Error> {
+    fn get_wallpapers(&self) -> core::result::Result<Vec<WallpaperInfo>, std::io::Error> {
         let paths = std::fs::read_dir(Path::new(self.location.as_str()))?;
         let mut result: Vec<WallpaperInfo> = Vec::new();
         for path in paths {
@@ -93,26 +115,66 @@ impl MainWindow {
 
     fn set_screen_wallpaper(screen: String, ui: &mut egui::Ui, wallpaper: String){
         if ui.button(screen.clone()).clicked() {
-            println!("Screen {}: {}", screen.clone(), wallpaper);
+            //println!("Screen {}: {}", screen.clone(), wallpaper);
+            let mut config = read_config();
+            *config.screens.get_mut(&screen).unwrap() = wallpaper;
+            write_config(config);
+            std::process::Command::new("systemctl").arg("--user").arg("restart").arg("wallpaperengine.service")
+                .output().expect("Failed to execute systemctl command");
             ui.close_menu();
         }
     }
 
     fn delete_wallpaper(wallpaper: WallpaperInfo) {
         println!("Deleting wallpaper: {}", wallpaper.full_path.to_str().unwrap());
+        std::fs::remove_dir_all(wallpaper.full_path).unwrap()
     }
 }
 
 impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let delete_modal = Modal::new(ctx, "delete_modal");
+        delete_modal.show(|ui| {
+            delete_modal.title(ui, "Delete wallpaper?");
+            delete_modal.frame(ui, |ui| {
+                delete_modal.body(ui, "Are you sure you want to permanently delete this wallpaper?");
+            });
+            delete_modal.buttons(ui, |ui| {
+                delete_modal.button(ui, "Close");
+                if delete_modal.button(ui, "Delete").clicked() {
+                    Self::delete_wallpaper(self.wallpaper.clone().unwrap())
+                };
+            });
+        });
+
+        let about_modal = Modal::new(ctx, "about_modal");
+        about_modal.show(|ui| {
+            about_modal.title(ui, "About wallpaper manager");
+            about_modal.frame(ui, |ui| {
+                about_modal.body(ui, "wallpaper manager to be used with linux-wallpaperengine");
+            });
+            about_modal.buttons(ui, |ui| {
+                about_modal.button(ui, "Close");
+            });
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("Get wallpapers").clicked() {
+                    }
                     if ui.button("Exit").clicked() {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
-                })
+                });
+                ui.menu_button("Help", |ui| {
+                    if ui.button("About").clicked() {
+                        about_modal.open();
+                        ui.close_menu();
+                    }
+                });
             });
+
             egui::containers::ScrollArea::new([false, true]).show(ui, |ui| {
                 egui::Grid::new("WallpaperGrid").show(ui, |ui| {
                     let wallpapers = self.get_wallpapers().unwrap();
@@ -126,7 +188,8 @@ impl eframe::App for MainWindow {
                                 }
                             });
                             if ui.button("Delete").clicked() {
-                                Self::delete_wallpaper(wallpaper.clone());
+                                self.wallpaper = Some(wallpaper);
+                                delete_modal.open();
                                 ui.close_menu();
                             }
                         });
