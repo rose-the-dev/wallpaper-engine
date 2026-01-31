@@ -2,10 +2,16 @@ use std::collections::HashMap;
 use ctrlc::set_handler;
 use serde::{Deserialize, Serialize};
 
+struct Global;
+impl Global {
+    const CONFIG_DIR: &str = ".config/wallpaper-gui";
+    const CONFIG_FILE: &str = "wallpaper.conf";
+}
+
 #[derive(Serialize, Deserialize)]
 struct Config {
     silent: bool,
-    audio_processing: bool,
+    no_audio_processing: bool,
     screens: HashMap<String, String>, // screen name, wallpaper id
 }
 #[derive(Serialize, Deserialize)]
@@ -15,10 +21,13 @@ struct ScreenInfo {
 }
 
 fn main() {
+    let binding = std::env::home_dir().unwrap();
+    //let config_dir = format!("{0}/{1}", binding.to_str().unwrap(), Global::CONFIG_DIR);
+    let config_file = format!("{0}/{1}/{2}", binding.to_str().unwrap(), Global::CONFIG_DIR, Global::CONFIG_FILE);
+    let mut config_file = config_file.as_str();
+
+
     let args: Vec<String> = std::env::args().collect();
-    let home = std::env::var("HOME").unwrap();
-    let fmt1 = format!("{}/.local/share/wallpaper.conf", home);
-    let mut config_file: &str = fmt1.as_str();
 
     let mut arg_num = 0;
     for i in 1..args.len() {
@@ -50,7 +59,7 @@ fn main() {
     if config.silent {
         proc.arg("--silent");
     }
-    if !config.audio_processing {
+    if config.no_audio_processing {
         proc.arg("--no-audio-processing");
     }
     for screen in config.screens {
