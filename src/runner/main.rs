@@ -12,7 +12,7 @@ impl Global {
 struct Config {
     silent: bool,
     no_audio_processing: bool,
-    screens: HashMap<String, String>, // screen name, wallpaper id
+    wallpapers: HashMap<String, String>, // screen name, wallpaper id
 }
 #[derive(Serialize, Deserialize)]
 struct ScreenInfo {
@@ -62,7 +62,7 @@ fn main() {
     if config.no_audio_processing {
         proc.arg("--no-audio-processing");
     }
-    for screen in config.screens {
+    for screen in config.wallpapers {
         proc.arg("--screen-root").arg(screen.0).arg("--bg").arg(screen.1);
     }
     let mut child = proc.spawn().expect("failed to execute process");
