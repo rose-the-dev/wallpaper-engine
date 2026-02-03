@@ -17,7 +17,7 @@ impl Global {
     const WALLPAPER_DIR: &str = "wallpapers";
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Config {
     /// Whether to auto start wallpaperengine.
     auto_start: bool,
@@ -29,21 +29,22 @@ struct Config {
     silent: bool,
     no_audio_processing: bool,
     wallpapers: HashMap<String, String>, // screen name, wallpaper id
+    wallpaper_engine_assets: Option<PathBuf>,
 }
-impl Clone for Config {
-    fn clone(&self) -> Self {
-        Self {
-            auto_start: self.auto_start,
-            icon_size: self.icon_size,
-            screens: self.screens.clone(),
-            //wallpaper_engine_dir: self.wallpaper_engine_dir.clone(),
-            //manager_dir: self.manager_dir.clone(),
-            silent: self.silent,
-            no_audio_processing: self.no_audio_processing,
-            wallpapers: self.wallpapers.clone(), // screen name, wallpaper id
-        }
-    }
-}
+//impl Clone for Config {
+//    fn clone(&self) -> Self {
+//        Self {
+//            auto_start: self.auto_start,
+//            icon_size: self.icon_size,
+//            screens: self.screens.clone(),
+//            //wallpaper_engine_dir: self.wallpaper_engine_dir.clone(),
+//            //manager_dir: self.manager_dir.clone(),
+//            silent: self.silent,
+//            no_audio_processing: self.no_audio_processing,
+//            wallpapers: self.wallpapers.clone(), // screen name, wallpaper id
+//        }
+//    }
+//}
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -55,10 +56,11 @@ impl Default for Config {
             silent: false,
             no_audio_processing: false,
             wallpapers: HashMap::new(),
+            wallpaper_engine_assets: None,
         }
     }
 }
-
+#[derive(Clone)]
 struct WallpaperInfo {
     /// Id of wallpaper (directory without full path of other files)
     id: String,
@@ -67,15 +69,15 @@ struct WallpaperInfo {
     /// Full path to preview file.
     preview_file: String,
 }
-impl Clone for WallpaperInfo {
-    fn clone(&self) -> Self {
-        Self {
-            id: self.id.clone(),
-            full_path: self.full_path.clone(),
-            preview_file: self.preview_file.clone(),
-        }
-    }
-}
+//impl Clone for WallpaperInfo {
+//    fn clone(&self) -> Self {
+//        Self {
+//            id: self.id.clone(),
+//            full_path: self.full_path.clone(),
+//            preview_file: self.preview_file.clone(),
+//        }
+//    }
+//}
 impl WallpaperInfo {
     pub fn new(path: PathBuf) -> core::result::Result<Self, std::io::Error> {
         let id = path.as_path().file_name().unwrap().to_str().unwrap().to_owned();
@@ -95,6 +97,7 @@ impl WallpaperInfo {
         Err(std::io::Error::new(std::io::ErrorKind::NotFound, "File not found"))
     }
 }
+
 
 
 fn main() -> eframe::Result {
@@ -269,7 +272,10 @@ impl Default for MainWindow<'static> {
     }
 }
 
+
 impl MainWindow<'static> {
+    fn load_image(&mut self, id: String) {
+    }
     //fn stop_reload_images(mut self) {
     //    let thread = self.loader_thread;
     //    let thread = thread.join();
@@ -303,12 +309,14 @@ impl MainWindow<'static> {
             self.wallpaper_process.as_mut().unwrap().kill().expect("Unable to kill child process.");
         }
         //let mut config = self.config.clone();
-        if self.config.wallpapers.get(&screen).is_none() {
-            self.config.wallpapers.insert(screen, wallpaper);
-        }
-        else {
+        //let wp = self.config.wallpapers.get(&screen);
+        if self.config.wallpapers.contains_key(&screen) {
             *self.config.wallpapers.get_mut(&screen).unwrap() = wallpaper;
         }
+        else {
+            self.config.wallpapers.insert(screen, wallpaper);
+        }
+
         //self.config = config;
         let wp_proc = Some(start_wallpaper_process(self.config.clone()));
         self.wallpaper_process = wp_proc;
