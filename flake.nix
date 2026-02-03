@@ -3,22 +3,30 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    systems.url = "github:nix-systems/default-linux";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {self, nixpkgs}:
-  let
-    #pkgs = nixpkgs.legacyPackages."x86_64-linux";
-    #pname = "rosethedev";
-    #node = pkgs.nodejs_22;
-    #nodeDeps = import ./node-packages.nix { inherit pkgs; };
-  in {
-    #packages."x86_64-linux".default = pkgs.callPackage ./default.nix {};
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in
+      {
+        # devShells.default is the development environment
+        # It's activated with 'nix develop' or automatically via direnv
+        # Documentation: https://nixos.wiki/wiki/Development_environment_with_nix-shell
+        devShells.default = pkgs.mkShell {
+              # Packages to include in the shell environment
+              buildInputs = with pkgs; [
+                mpv
+                pkg-config
+              ];
 
-    packages = eachSystem (system: {
-      default = self.packages.${system}.wallpaper-gui;
-      #wallpaper-gui = callPackage ./default.nix {};
-      # Funky
-    });
-  };
+              shellHook = ''
+                echo "Bruh"
+              '';
+
+              PROJECT_NAME = "wallpaper-engine";
+            };
+      });
 }

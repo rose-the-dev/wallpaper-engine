@@ -5,5 +5,5 @@ stdenv.mkDerivation {
 
   src = "./";
 
-  buildInputs = with pkgs; [ linux-wallpaperengine ];
+  buildInputs = with pkgs; [ mpvpaper ];
 }

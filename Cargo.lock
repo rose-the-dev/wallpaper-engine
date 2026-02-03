@@ -3883,7 +3883,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wallpaper-gui"
+name = "wallpaper-engine-gui"
 version = "0.1.0"
 dependencies = [
  "ctrlc",
