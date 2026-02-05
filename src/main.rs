@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
+use display_info::DisplayInfo;
 use eframe::{egui};
 use eframe::egui::{include_image, Image, ImageButton, Vec2};
 use egui_modal::Modal;
 use serde::{Deserialize, Serialize};
-//use serde_json::{Result, Value};
 
 struct Global;
 impl Global {
@@ -18,14 +18,12 @@ impl Global {
 struct Config {
     /// Whether to auto start wallpaperengine.
     auto_start: bool,
+    /// Icon size
     icon_size: f32,
-    /// Current screen configuration, DP-2, HDMI-A-1, eDP-1, etc
-    screens: Vec<String>,
-    //wallpaper_engine_dir: Option<String>,
-    //manager_dir: Option<String>,
     silent: bool,
     no_audio_processing: bool,
-    wallpapers: HashMap<String, String>, // screen name, wallpaper id
+    fps: Option<u16>,
+    wallpapers: HashMap<String, ScreenInfo>,
     wallpaper_engine_assets: Option<PathBuf>,
 }
 impl Default for Config {
@@ -33,18 +31,24 @@ impl Default for Config {
         Self {
             auto_start: false,
             icon_size: 200.0,
-            screens: Vec::new(),
-            //wallpaper_engine_dir: None,
-            //manager_dir: ".config/wallpaper-".to_owned(),
             silent: false,
             no_audio_processing: false,
+            fps: None,
             wallpapers: HashMap::new(),
             wallpaper_engine_assets: None,
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ScreenInfo {
+    id: String,
+    scaling: Option<String>,
+    clamp: Option<String>,
+}
+
 #[derive(Clone)]
-struct WallpaperFileInfo {
+struct WallpaperInfo {
     /// Id of wallpaper (directory without full path of other files)
     id: String,
     /// Full path of wallpaper files with id.
@@ -52,13 +56,12 @@ struct WallpaperFileInfo {
     /// Full path to preview file.
     preview_file: String,
 }
-impl WallpaperFileInfo {
+impl WallpaperInfo {
     pub fn new(path: PathBuf) -> Result<Self, std::io::Error> {
         let id = path.as_path().file_name().unwrap().to_str().unwrap().to_owned();
         let paths = std::fs::read_dir(Path::new(path.as_path()))?;
         for path2 in paths {
             let path2 = path2?.path();
-            //let file = path2.as_path().file_name().unwrap();
             let name = path2.as_path().file_stem().unwrap();
             if name == "preview" {
                 return Ok(Self {
@@ -74,7 +77,7 @@ impl WallpaperFileInfo {
 
 #[derive(Clone)]
 struct Wallpaper<'a> {
-    wallpaper_info: WallpaperFileInfo,
+    wallpaper_info: WallpaperInfo,
     image: Option<Image<'a>>,
 }
 
@@ -106,9 +109,12 @@ fn write_config(config_file: String, config: Config) {
 
 fn start_wallpaper_process(config: Config) -> Child {
     let mut proc = Command::new("linux-wallpaperengine");
-    proc.arg("--assets-dir").arg("/home/rose/.steam/steam/steamapps/common/wallpaper_engine/assets");
-    //proc.arg("--assets-dir").arg(format!("{0}/{1}/{2}", std::env::home_dir().expect("ERROR1").to_str().expect("ERROR2"), Global::CONFIG_DIR, Global::WALLPAPER_DIR));
-    // TODO: include --fps 15
+    if config.wallpaper_engine_assets.is_some() {
+        proc.arg("--assets-dir").arg(config.wallpaper_engine_assets.as_ref().unwrap());
+    }
+    if config.fps.is_some() {
+        proc.arg("--fps").arg(&config.fps.unwrap().to_string());
+    }
     if config.silent {
         proc.arg("--silent");
     }
@@ -116,8 +122,13 @@ fn start_wallpaper_process(config: Config) -> Child {
         proc.arg("--no-audio-processing");
     }
     for (mon, wp) in config.wallpapers.iter() {
-        // TODO: Include other values, like '--scaling' and '--clamp'.
-        proc.arg("--screen-root").arg(mon).arg("--bg").arg(wp);
+        proc.arg("--screen-root").arg(mon).arg("--bg").arg(&wp.id);
+        if wp.scaling.is_some() {
+            proc.arg("--scaling").arg(wp.scaling.as_ref().unwrap());
+        }
+        if wp.clamp.is_some() {
+            proc.arg("--clamp").arg(wp.clamp.as_ref().unwrap());
+        }
     }
     proc.spawn().expect("Failed to start wallpaper process.")
 }
@@ -131,16 +142,16 @@ fn get_wallpaper_dir(wp_dir: Option<String>) -> String {
     }
 }
 
-fn get_wallpapers() -> Result<Vec<WallpaperFileInfo>, std::io::Error> {
-    let path = format!("{0}/{1}/{2}", std::env::home_dir().expect("ERROR1").to_str().expect("ERROR2"), Global::CONFIG_DIR, Global::WALLPAPER_DIR);
+fn get_wallpapers() -> Result<Vec<WallpaperInfo>, std::io::Error> {
+    let path = get_wallpaper_dir(None);
     if (std::fs::exists(path.clone())).is_ok() {
         std::fs::create_dir_all(path.clone()).expect("Unable to create wallpaper dir");
     }
     let paths = std::fs::read_dir(path)?;
-    let mut result: Vec<WallpaperFileInfo> = Vec::new();
+    let mut result: Vec<WallpaperInfo> = Vec::new();
     for path in paths {
         let path = path?.path();
-        result.push(WallpaperFileInfo::new(path)?);
+        result.push(WallpaperInfo::new(path)?);
     }
     //if result.is_empty() {
     //    return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Directory empty").into());
@@ -148,30 +159,28 @@ fn get_wallpapers() -> Result<Vec<WallpaperFileInfo>, std::io::Error> {
     Ok(result)
 }
 
-fn get_wallpaper_previews() -> Result<Vec<String>, std::io::Error> {
-    //let paths = std::fs::read_dir(Path::new(self.config.wallpaper_engine_dir.clone().unwrap().as_str()))?; // WRONG THIS NEEDS TO BE CHANGED.
-    let path = format!("{0}/{1}/{2}", std::env::home_dir().expect("ERROR1").to_str().expect("ERROR2"), Global::CONFIG_DIR, Global::WALLPAPER_DIR);
-    if (std::fs::exists(path.clone())).is_ok() {
-        std::fs::create_dir_all(path.clone()).expect("Unable to create wallpaper dir");
-    }
-    let paths = std::fs::read_dir(path).unwrap(); // WRONG THIS NEEDS TO BE CHANGED.
-    let mut result: Vec<String> = Vec::new();
-    for path in paths {
-        let path = path.unwrap().path();
-        result.push(path.file_name().unwrap().to_str().unwrap().to_owned());
-    }
-    if result.is_empty() {
-        return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Directory empty").into());
-    }
-    Ok(result)
-}
+//fn get_wallpaper_previews() -> Result<Vec<String>, std::io::Error> {
+//    let path = get_wallpaper_dir(None);
+//    if (std::fs::exists(path.clone())).is_ok() {
+//        std::fs::create_dir_all(path.clone()).expect("Unable to create wallpaper dir");
+//    }
+//    let paths = std::fs::read_dir(path).unwrap();
+//    let mut result: Vec<String> = Vec::new();
+//    for path in paths {
+//        let path = path.unwrap().path();
+//        result.push(path.file_name().unwrap().to_str().unwrap().to_owned());
+//    }
+//    if result.is_empty() {
+//        return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Directory empty").into());
+//    }
+//    Ok(result)
+//}
 
 fn get_wallpaper_preview(wallpaper_dir: String) -> Result<String, std::io::Error> {
     let paths = std::fs::read_dir(wallpaper_dir);
     if paths.is_ok() {
-        for path2 in paths.unwrap() {
+        for path2 in paths? {
             let path2 = path2?.path();
-            //let file = path2.as_path().file_name().unwrap();
             let name = path2.as_path().file_stem().unwrap();
             if name == "preview" {
                 return Ok(path2.as_path().to_str().unwrap().to_owned());
@@ -190,20 +199,12 @@ fn get_column_count(window_width: f32, icon_width: f32) -> i32 {
 
 struct MainWindow<'a> {
     config: Config,
-    //icon_size: f32,
-    wallpaper: Option<WallpaperFileInfo>,
-    //preview_images: HashMap<String, Option<Image<'a>>>,
+    wallpaper: Option<WallpaperInfo>,
     wallpapers: HashMap<String, Wallpaper<'a>>,
     default_preview_image: Image<'a>,
-
     wallpaper_process: Option<Child>,
-    //loader_thread: Option<JoinHandle<HashMap<String, Option<Image<'static>>>>>,
-    //load_images: bool,
-
     /// The current selected screen to set wallpaper.
     select_current_screen: Option<String>,
-    ///// Might not be required.
-    //select_current_wallpaper: Option<String>,
 }
 
 impl Default for MainWindow<'static> {
@@ -225,25 +226,17 @@ impl Default for MainWindow<'static> {
             wallpaper_process = Some(start_wallpaper_process(config.clone()));
         }
         let icon_size = config.icon_size;
-
         let default_preview_image = Image::new(include_image!("UnknownImage.png")).fit_to_exact_size(Vec2::new(icon_size, icon_size));
 
-
-        //let loader_handle = reload_images();
-        let x = Self {
+        let mut x = Self {
             config,
-            //icon_size: 200.0,
             wallpaper: None,
             wallpapers: HashMap::new(),
-            //preview_images: HashMap::new(),
             default_preview_image,
             wallpaper_process,
-            //loader_thread: None,
-            //load_images: true,
-
             select_current_screen: None,
-            //select_current_wallpaper: None,
         };
+        x.load_all_wallpapers();
         x
     }
 }
@@ -251,7 +244,6 @@ impl Default for MainWindow<'static> {
 
 impl MainWindow<'static> {
     fn load_next_image(&mut self) -> bool {
-        // TODO: Find first image in list that is None and load it.  Hint: List is probably not from self.preview_images and that needs a bit of an overhaul.
         let wps = get_wallpapers().unwrap();
         for wp in wps {
             if !self.wallpapers.contains_key(&wp.id) {
@@ -269,45 +261,38 @@ impl MainWindow<'static> {
         false
     }
 
-    //fn check_wallpapers(&mut self) {
-    //    let path = format!("{0}/{1}/{2}", std::env::home_dir().expect("ERROR1").to_str().expect("ERROR2"), Global::CONFIG_DIR, Global::WALLPAPER_DIR);
-    //    if (std::fs::exists(path.clone())).is_ok() {
-    //        std::fs::create_dir_all(path.clone()).expect("Unable to create wallpaper dir");
-    //    }
-    //    let paths = std::fs::read_dir(path)?;
-    //    let mut result: Vec<WallpaperFileInfo> = Vec::new();
-    //    for path in paths {
-    //        let path = path?.path();
-    //        result.push(WallpaperFileInfo::new(path)?);
-    //    }
-    //    if result.is_empty() {
-    //        return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Directory empty").into());
-    //    }
-    //    Ok(result)
-    //}
+    fn load_all_wallpapers(&mut self) -> bool {
+        let mut used = false;
+        let wps = get_wallpapers().unwrap();
+        for wp in wps {
+            if !self.wallpapers.contains_key(&wp.id) {
+                self.wallpapers.insert(wp.id.clone(), Wallpaper { wallpaper_info: wp.clone(), image: None });
+                used = true;
+            }
+        }
+        used
+    }
 
-    fn set_screen_wallpaper(&mut self, screen: String, wallpaper: String) {
+    fn set_screen_wallpaper(&mut self, screen: String, wallpaper_id: String) {
         if self.wallpaper_process.is_some() {
             self.wallpaper_process.as_mut().unwrap().kill().expect("Unable to kill child process.");
         }
-        //let mut config = self.config.clone();
-        //let wp = self.config.wallpapers.get(&screen);
+
         if self.config.wallpapers.contains_key(&screen) {
-            *self.config.wallpapers.get_mut(&screen).unwrap() = wallpaper;
+            self.config.wallpapers.get_mut(&screen).unwrap().id = wallpaper_id;
         }
         else {
-            self.config.wallpapers.insert(screen, wallpaper);
+            self.config.wallpapers.insert(screen, ScreenInfo { id: wallpaper_id, scaling: None, clamp: None });
         }
 
         let config_file = format!("{0}/{1}/{2}", std::env::home_dir().unwrap().to_str().unwrap(), Global::CONFIG_DIR, Global::CONFIG_FILE);
         write_config(config_file, self.config.clone());
 
-        //self.config = config;
         let wp_proc = Some(start_wallpaper_process(self.config.clone()));
         self.wallpaper_process = wp_proc;
     }
 
-    fn delete_wallpaper(wallpaper: WallpaperFileInfo) {
+    fn delete_wallpaper(wallpaper: WallpaperInfo) {
         println!("Deleting wallpaper: {}", wallpaper.full_path.to_str().unwrap());
         std::fs::remove_dir_all(wallpaper.full_path).unwrap()
     }
@@ -377,7 +362,7 @@ impl eframe::App for MainWindow<'static> {
         let import_wallpapers_modal = Modal::new(ctx, "wallpapers_modal");
         import_wallpapers_modal.show(|ui| {
             import_wallpapers_modal.title(ui, "Wallpapers manager");
-            import_wallpapers_modal.frame(ui, |ui| {
+            import_wallpapers_modal.frame(ui, |_ui| {
                 // TODO: Implement import wallpapers from steam/wallpaper-engine.
             });
             import_wallpapers_modal.buttons(ui, |ui| {
@@ -396,9 +381,11 @@ impl eframe::App for MainWindow<'static> {
                 });
                 ui.menu_button("Get wallpapers", |ui| {
                     if ui.button("WallpaperHub").clicked() {
+                        // TODO: Implement download from hub, also implement hub site.
                         ui.close_menu();
                     }
                     if ui.button("Import from wallpaperengine").clicked() {
+                        // TODO: Implement import from wallpaper engine.
                         ui.close_menu();
                     }
                 });
@@ -410,28 +397,25 @@ impl eframe::App for MainWindow<'static> {
                 });
             });
             egui::Grid::new("top_panel_grid").show(ui, |ui| {
-                for screen in self.config.screens.clone() {
-                    if ui.button(screen.clone()).clicked() {
-                        self.select_current_screen = Some(screen);
+                let displays = DisplayInfo::all().expect("Couldn't get display info");
+                for screen in displays {
+                    if ui.button(&screen.name).clicked() {
+                        self.select_current_screen = Some(screen.name);
                     }
                 }
                 if self.select_current_screen.is_some() {
                     ui.label(format!("Selected screen: {0}", self.select_current_screen.clone().unwrap()));
                 }
             });
-            //egui::containers::Window::new("").show(ctx, |ui| {
-            //    ui.label("tsæøhkølfgtjhlftg");
-            //})
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| { // FIGURE OUT HOW TO ASYNC LOAD IMAGES, 15 SEC WAIT IS UNACCEPTABLE.
+        egui::CentralPanel::default().show(ctx, |ui| {
             egui::containers::ScrollArea::new([false, true]).show(ui, |ui| {
                 egui::Grid::new("WallpaperGrid").show(ui, |ui| {
                     self.load_next_image();
                     let wallpapers = self.wallpapers.clone();
                     let mut column = 0;
                     for (id, wallpaper) in wallpapers {
-                        //let image_box = ui.add(ImageButton::new(Image::new(format!("file://{}", wallpaper.preview_file)).fit_to_exact_size(Vec2::new(self.icon_size, self.icon_size))));
                         let mut image = wallpaper.image;
                         if image.is_none() {
                             image = Some(self.default_preview_image.clone());
@@ -440,8 +424,14 @@ impl eframe::App for MainWindow<'static> {
                         if image_box.clicked() && self.select_current_screen.is_some() {
                             println!("Wallpaper {} clicked.", id.clone());
                             self.set_screen_wallpaper(self.select_current_screen.clone().unwrap(), id.clone());
-                            //wallpapers_modal.close();
                         }
+                        image_box.context_menu(|ui| {
+                            if ui.button("Delete").clicked() {
+                                self.wallpaper = Some(wallpaper.wallpaper_info);
+                                delete_modal.open();
+                                ui.close_menu();
+                            }
+                        });
                         column += 1;
                         if column == get_column_count(ctx.input(|i: &egui::InputState| i.screen_rect()).width(), self.config.icon_size) {
                             column = 0;
