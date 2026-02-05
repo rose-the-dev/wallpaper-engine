@@ -255,13 +255,13 @@ impl MainWindow<'static> {
         let wps = get_wallpapers().unwrap();
         for wp in wps {
             if !self.wallpapers.contains_key(&wp.id) {
-                self.wallpapers.insert(wp.id.clone(), Wallpaper { wallpaper_info: wp.clone(), image: Some(Image::new(format!("file://{0}", wp.preview_file.clone()))) });
+                self.wallpapers.insert(wp.id.clone(), Wallpaper { wallpaper_info: wp.clone(), image: Some(Image::new(format!("file://{0}", wp.preview_file.clone())).fit_to_exact_size(Vec2::new(self.config.icon_size, self.config.icon_size))) });
                 return true;
             }
             else {
                 let x = self.wallpapers.get_mut(&wp.id).unwrap();
                 if x.image.is_none() {
-                    x.image =Some(Image::new(format!("file://{0}", wp.preview_file.clone())));
+                    x.image =Some(Image::new(format!("file://{0}", wp.preview_file.clone())).fit_to_exact_size(Vec2::new(self.config.icon_size, self.config.icon_size)));
                     return true;
                 }
             }
