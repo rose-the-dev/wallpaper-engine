@@ -4,7 +4,7 @@ with lib;
 
 let
   cfg = config.services.wallpaper-engine;
-  wallpaperPkg = pkgs.callPackage ./wallpaper.nix { };
+  wallpaperPkg = pkgs.callPackage ./package.nix { };
 in
 {
   options.services.wallpaper-engine = {
