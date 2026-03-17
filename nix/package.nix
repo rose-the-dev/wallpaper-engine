@@ -1,5 +1,5 @@
 #with import <nixpkgs> {};
-{ lib, makeDesktopItem, rustPlatform, ... }:
+{ pkgs, lib, makeDesktopItem, rustPlatform, ... }:
 
 rustPlatform.buildRustPackage {
   pname = "wallpaper-manager";
