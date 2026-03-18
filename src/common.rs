@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
+use std::process::{Child, Command, Output};
 use eframe::egui::Image;
 use serde::{Deserialize, Serialize};
 
@@ -38,6 +38,8 @@ impl Default for Config {
         }
     }
 }
+
+pub enum ServiceType {Service, None}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ScreenInfo {
@@ -164,9 +166,16 @@ pub fn kill_wallpaper() {
     //}
 }
 
-//pub fn start_wallpaper(config: Config) -> Child {
-//
-//}
+pub fn restart_wallpaper_service(service_type: ServiceType) -> std::io::Result<Output> {
+    match service_type {
+        ServiceType::Service => Command::new("systemctl").arg("--user").arg("restart").arg("wallpaper-engine.service").output(),
+        ServiceType::None => {
+            Command::new("pkill").arg("-f").arg("linux-wallpaperengine").output().expect("Failed to kill wallpaper process.");
+            //start_wallpaper_process(read_config(CONFIG_FILE.to_string()));
+            panic!("Service only for now.")
+        },
+    }
+}
 
 pub fn get_wallpaper_dir(wp_dir: Option<String>) -> String {
     if wp_dir.is_some() {
