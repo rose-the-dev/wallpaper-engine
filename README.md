@@ -1,2 +1,50 @@
 # Premise
 This is an educational project, to better learn Rust and UI design (I am terrible)
+
+## Installation
+### Nixos
+
+Add the github as a flake input and add the module 'wallpaper-engine.homeManagerModules.wallpaper-engine' to imports / modules.
+Enable the service with services.wallpaper-engine.enable = true;
+This *should* add wallpaper-gui and wallpaper-runner to path.
+
+Example flake.nix:
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    wallpaper-engine.url = "github:rose-the-dev/WallpaperManager";
+  };
+  outputs = inputs@{ nixpkgs, home-manager, hyprland, wallpaper-engine, ... }:
+  let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+  in {
+    nixosConfigurations."<hostname>" = nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        inherit system;
+        inherit inputs;
+      };
+      modules = [
+        ./configuration.nix
+        home-manager.nixosModules.home-manager {
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            extraSpecialArgs = { inherit inputs; };
+            users.rose = {
+              imports = [
+                ./home.nix
+                wallpaper-engine.homeManagerModules.wallpaper-engine { services.wallpaper-engine.enable = true; }
+              ];
+            };
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Other distros
+I do have plans to create a build and install script for other distros, but right now it's nixos only.
