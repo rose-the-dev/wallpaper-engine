@@ -2,7 +2,7 @@
 { pkgs, lib, makeDesktopItem, rustPlatform, linux-wallpaperengine, ... }:
 
 rustPlatform.buildRustPackage {
-  pname = "wallpaper-manager";
+  pname = "wallpaper-engine";
   version = "0.1.1";
 
   src = lib.cleanSource ./..;
