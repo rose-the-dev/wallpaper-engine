@@ -8,6 +8,12 @@ Add the github as a flake input and add the module 'wallpaper-engine.homeManager
 Enable the service with services.wallpaper-engine.enable = true;
 This *should* add wallpaper-gui and wallpaper-runner to path.
 
+**Currently broken:** wallpaper-gui doesn't run by default due to dependency issues (I honestly have no clue how to fix it)
+but running it via "steam-run wallpaper-gui" does get it to run.
+All I know is that the winit crate has issues with dynamically loading wayland client or something.
+
+Any help is appreciated.
+
 Example flake.nix:
 ```nix
 {
