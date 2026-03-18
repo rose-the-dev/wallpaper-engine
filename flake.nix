@@ -17,16 +17,15 @@
     };
 
     devShells.default = pkgs.mkShell rec {
-      buildInputs = with pkgs; [
-        pkg-config xcb
-      ];
-      packages = with pkgs; [  ];
-
+      buildInputs = with pkgs; [ libxkbcommon libGL wayland ];
       shellHook = ''
         echo "Bruh"
       '';
 
       PROJECT_NAME = "wallpaper-engine";
+      RUST_LOG = "debug";
+      RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
+      LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath buildInputs}";
     };
     nixosModules.wallpaper-manager = import ./nix/module.nix;
     homeManagerModules.wallpaper-manager = import ./nix/module.nix;

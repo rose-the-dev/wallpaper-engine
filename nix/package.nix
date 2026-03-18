@@ -10,7 +10,8 @@ rustPlatform.buildRustPackage {
   cargoLock = {lockFile = ../Cargo.lock;};
   #cargoHash = "sha256-KKi+r2D7bnJn8tVnjJx1x3jFsakijMQ8YKBFYBiB0RY=";
 
-  buildInputs = with pkgs; [ linux-wallpaperengine libxcb wayland wayland-protocols];
+  #nativeBuildInputs = with pkgs; [ libGL libGLU ];
+  buildInputs = with pkgs; [ pkg-config linux-wallpaperengine libxcb wayland wayland-protocols wayland-scanner ];
 
   #postInstall = ''
   #  install -Dm755 target/release/wallpaper-runner $out/bin/wallpaper-runner
