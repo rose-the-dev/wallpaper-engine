@@ -121,6 +121,7 @@ impl MainWindow<'static> {
 
         let config_file = format!("{0}/{1}/{2}", std::env::home_dir().unwrap().to_str().unwrap(), CONFIG_DIR, CONFIG_FILE);
         write_config(config_file, self.config.clone());
+        restart_wallpaper_service(ServiceType::Service).expect("Unable to restart service.");
 
         //let wp_proc = Some(start_wallpaper_process(self.config.clone()));
         //self.wallpaper_process = wp_proc;
@@ -281,6 +282,7 @@ impl eframe::App for MainWindow<'static> {
             if update {
                 //kill_wallpaper(self.wallpaper_process.as_mut());
                 write_config(format!("{0}/{1}/{2}", std::env::home_dir().unwrap().to_str().unwrap(), CONFIG_DIR, CONFIG_FILE), self.config.clone());
+                restart_wallpaper_service(ServiceType::Service).expect("Unable to restart service.");
 
                 //let wp_proc = Some(start_wallpaper_process(self.config.clone()));
                 //self.wallpaper_process = wp_proc;

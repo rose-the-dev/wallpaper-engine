@@ -170,7 +170,7 @@ pub fn restart_wallpaper_service(service_type: ServiceType) -> std::io::Result<O
     match service_type {
         ServiceType::Service => Command::new("systemctl").arg("--user").arg("restart").arg("wallpaper-engine.service").output(),
         ServiceType::None => {
-            Command::new("pkill").arg("-f").arg("linux-wallpaperengine").output().expect("Failed to kill wallpaper process.");
+            //Command::new("pkill").arg("-f").arg("linux-wallpaperengine").output().expect("Failed to kill wallpaper process.");
             //start_wallpaper_process(read_config(CONFIG_FILE.to_string()));
             panic!("Service only for now.")
         },
