@@ -18,6 +18,7 @@
 
     devShells.default = pkgs.mkShell rec {
       buildInputs = with pkgs; [ libxkbcommon libGL wayland ];
+      packages = with pkgs; [ linux-wallpaperengine ];
       shellHook = ''
         echo "Bruh"
       '';
