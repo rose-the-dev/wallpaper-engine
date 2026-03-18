@@ -18,8 +18,8 @@ in
   };
 
   config = mkIf cfg.enable {
-    systemd.user.services.wallpaper-runner = {
-      Unit.Description = "Wallpaper Runner Service";
+    systemd.user.services.wallpaper-engine = {
+      Unit.Description = "Wallpaper Service using linux-wallpaperengine with a wrapper.";
       Unit.After = [ "graphical-session.target" ];
 
       Service.Type = "simple";
