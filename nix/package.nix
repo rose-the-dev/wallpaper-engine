@@ -1,8 +1,8 @@
 #with import <nixpkgs> {};
-{ pkgs, lib, makeDesktopItem, rustPlatform, ... }:
+{ pkgs, lib, makeDesktopItem, rustPlatform, linux-wallpaperengine, ... }:
 
 rustPlatform.buildRustPackage {
-  pname = "wallpaper-manager";
+  pname = "wallpaper-engine";
   version = "0.1.1";
 
   src = lib.cleanSource ./..;
@@ -10,7 +10,8 @@ rustPlatform.buildRustPackage {
   cargoLock = {lockFile = ../Cargo.lock;};
   #cargoHash = "sha256-KKi+r2D7bnJn8tVnjJx1x3jFsakijMQ8YKBFYBiB0RY=";
 
-  buildInputs = with pkgs; [ pkg-config linux-wallpaperengine libxcb wayland wayland-protocols wayland-scanner ];
+  buildInputs = with pkgs; [ linux-wallpaperengine pkg-config libxcb wayland wayland-protocols wayland-scanner ];
+  packages = with pkgs; [ linux-wallpaperengine ];
 
   #postInstall = ''
   #  install -Dm755 target/release/wallpaper-runner $out/bin/wallpaper-runner
@@ -30,7 +31,7 @@ rustPlatform.buildRustPackage {
 
   meta = with lib; {
     description = "Wallpaper engine with runner and GUI";
-    license = licenses.mit;
+    license = licenses.gpl3Only;
     platforms = platforms.linux;
     mainProgram = "wallpaper-gui";
   };
