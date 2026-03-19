@@ -22,7 +22,7 @@ rustPlatform.buildRustPackage {
   postInstall = ''
     wrapProgram $out/bin/wallpaper-runner --prefix PATH : "${lib.makeBinPath [ linux-wallpaperengine ]}"
 
-    wrapProgram $out/bin/wallpaper-gui --prefix PATH : "${lib.makeBinPath [ pkgs.wayland pkgs.wayland-protocols pkgs.wayland-scanner ]}"
+    wrapProgram $out/bin/wallpaper-gui --prefix PATH : "${lib.makeBinPath [ pkgs.libxkbcommon pkgs.libGL pkgs.wayland pkgs.wayland-protocols pkgs.wayland-scanner ]}"
 
     mkdir -p $out/share/applications
     cat > $out/share/applications/wallpaper-engine.desktop <<EOF
@@ -37,16 +37,14 @@ rustPlatform.buildRustPackage {
   '';
 
   # This is literally ignored for no reason.
-  desktopItems = [
-      (makeDesktopItem {
-        name = "Wallpaper manager";
-        exec = "wallpaper-gui";
-        icon = "wallpaper-gui";
-        desktopName = "wallpaper-gui.desktop";
-        comment = "Wallpaper manager";
-        #categories = [ "Internet" ];
-      })
-    ];
+  #desktopItem = makeDesktopItem ({
+  #  name = "Wallpaper manager";
+  #  exec = "wallpaper-gui";
+  #  icon = "wallpaper-gui";
+  #  desktopName = "wallpaper-gui.desktop";
+  #  comment = "Wallpaper manager";
+  #  #categories = [ "Internet" ];
+  #});
 
   meta = with lib; {
     description = "Wallpaper engine with runner and GUI";
