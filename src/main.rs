@@ -1,5 +1,6 @@
 mod common;
 
+use std::cmp::PartialEq;
 use crate::common::*;
 use std::collections::{BTreeMap, HashMap};
 use std::ops::RangeInclusive;
@@ -35,10 +36,11 @@ struct MainWindow<'a> {
     /// The current selected screen to set wallpaper.
     select_current_screen: Option<String>,
 
-    delete_window_open: bool,
-    about_window_open: bool,
-    import_window_open: bool,
+    subpage: Subpage,
 }
+
+#[derive(PartialEq)]
+enum Subpage { None, About, Delete, Import, GetWallpapers}
 
 impl Default for MainWindow<'static> {
     fn default() -> Self {
@@ -68,9 +70,7 @@ impl Default for MainWindow<'static> {
             //wallpaper_process,
             select_current_screen: Some(DisplayInfo::all().unwrap()[0].name.clone()),
 
-            delete_window_open: false,
-            about_window_open: false,
-            import_window_open: false,
+            subpage: Subpage::None,
         };
         x.load_all_wallpapers();
         x
@@ -127,73 +127,25 @@ impl MainWindow<'static> {
         //self.wallpaper_process = wp_proc;
     }
 
-    fn delete_wallpaper(wallpaper: WallpaperInfo) {
-        println!("Deleting wallpaper: {}", wallpaper.full_path.to_str().unwrap());
+    fn delete_wallpaper(&self, wallpaper: WallpaperInfo) {
+        if self.config.debugging {
+            println!("Deleting wallpaper: {}", wallpaper.full_path.to_str().unwrap());
+        }
         std::fs::remove_dir_all(wallpaper.full_path).unwrap()
+    }
+
+    fn floating_bg() -> egui::Frame {
+        egui::Frame::default()
+            .fill(egui::Color32::from_rgb(30, 30, 45))
+            .stroke(egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY))
+            .corner_radius(8.0)
+            .inner_margin(egui::Margin::same(12))
     }
 }
 
 impl eframe::App for MainWindow<'static> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        //let delete_modal = Modal::new(ctx, "delete_modal");
-        //delete_modal.show(|ui| {
-        //    delete_modal.title(ui, "Delete wallpaper?");
-        //    delete_modal.frame(ui, |ui| {
-        //        delete_modal.body(ui, "Are you sure you want to permanently delete this wallpaper?");
-        //    });
-        //    delete_modal.buttons(ui, |ui| {
-        //        delete_modal.button(ui, "Close");
-        //        if delete_modal.button(ui, "Delete").clicked() {
-        //            Self::delete_wallpaper(self.wallpaper.clone().unwrap())
-        //        };
-        //    });
-        //});
-//
-        //let about_modal = Modal::new(ctx, "about_modal");
-        //about_modal.show(|ui| {
-        //    about_modal.title(ui, "About wallpaper manager");
-        //    about_modal.frame(ui, |ui| {
-        //        about_modal.body(ui, "wallpaper manager to be used with linux-wallpaperengine");
-        //    });
-        //    about_modal.buttons(ui, |ui| {
-        //        about_modal.button(ui, "Close");
-        //    });
-        //});
-//
-        //let import_wallpapers_modal = Modal::new(ctx, "wallpapers_modal");
-        //import_wallpapers_modal.show(|ui| {
-        //    import_wallpapers_modal.title(ui, "Wallpapers manager");
-        //    import_wallpapers_modal.frame(ui, |_ui| {
-        //        // TODO: Implement import wallpapers from steam/wallpaper-engine.
-        //    });
-        //    import_wallpapers_modal.buttons(ui, |ui| {
-        //        import_wallpapers_modal.button(ui, "Close");
-        //    })
-        //});
-
-        //egui::containers::Modal::new("delete_modal".into()).show(ctx, |ui| {
-        //    ui.label("TEST");
-        //    if ui.button("Close").clicked() {
-        //        ui.close()
-        //    }
-        //});
-
-        if self.delete_window_open {
-            egui::Window::new("Delete wallpaper?").movable(false).resizable(false).collapsible(false).anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-                .open(&mut self.delete_window_open)
-                .show(ctx, |ui| {
-                    ui.label("Are you sure you want to permanently delete this wallpaper?");
-                    if ui.button("Close").clicked() {
-                        //ui.
-                        //self.delete_window_open = false;
-                    }
-                    if ui.button("Delete").clicked() {
-                        Self::delete_wallpaper(self.wallpaper.clone().unwrap());
-                        ui.close();
-                    };
-                });
-        }
-
+        let content = ctx.content_rect();
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -232,7 +184,63 @@ impl eframe::App for MainWindow<'static> {
             });
         });
 
-        egui::SidePanel::right("side_panel").show(ctx, |ui| {
+        match self.subpage {
+            Subpage::None => {},
+            Subpage::About => {
+                egui::Area::new("about_panel".into())
+                    .movable(false)
+                    .anchor(egui::Align2::CENTER_TOP, [100.0, 150.0])
+                    .show(ctx, |ui| {
+                        let bg = Self::floating_bg();
+                        bg.show(ui, |ui| {
+                            if ui.button("Close").clicked() {
+                                self.subpage = Subpage::None;
+                            }
+                        });
+                });
+            },
+            Subpage::Delete => {
+                egui::Area::new("delete_panel".into())
+                    .movable(false)
+                    .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                    .show(ctx, |ui| {
+                        let bg = Self::floating_bg();
+                        bg.show(ui, |ui| {
+                            if ui.button("Close").clicked() {
+                                self.subpage = Subpage::None;
+                            }
+                        });
+                });
+            },
+            Subpage::Import => {
+                egui::Area::new("import_panel".into())
+                    .movable(false)
+                    .anchor(egui::Align2::CENTER_TOP, [100.0, 150.0])
+                    .show(ctx, |ui| {
+                        let bg = Self::floating_bg();
+                        bg.show(ui, |ui| {
+                            if ui.button("Close").clicked() {
+                                self.subpage = Subpage::None;
+                            }
+                        });
+                });
+            },
+            Subpage::GetWallpapers => {
+                egui::Area::new("get_panel".into())
+                    .movable(false)
+                    .anchor(egui::Align2::CENTER_TOP, [100.0, 150.0])
+                    .show(ctx, |ui| {
+                        let bg = Self::floating_bg();
+                        bg.show(ui, |ui| {
+                            if ui.button("Close").clicked() {
+                                self.subpage = Subpage::None;
+                            }
+                        });
+                });
+            }
+        }
+
+        let x = egui::SidePanel::right("side_panel").resizable(false).show(ctx, |ui| {
             let mut image = self.default_preview_image.clone().fit_to_exact_size(Vec2::new(250.0, 250.0));
             if self.wallpaper.is_some() {
                 image = Image::new(format!("file://{}", self.wallpaper.as_ref().unwrap().preview_file)).fit_to_exact_size(Vec2::new(250.0, 250.0));
@@ -243,8 +251,8 @@ impl eframe::App for MainWindow<'static> {
             }
 
             let mut fps_clicked = self.config.fps.is_some();
-            let mut update = ui.checkbox(&mut self.config.auto_start, "Auto start").changed();
-            update = update | ui.checkbox(&mut self.config.silent, "Silent").changed();
+            //let mut update = ui.checkbox(&mut self.config.auto_start, "Auto start").changed();
+            let mut update = ui.checkbox(&mut self.config.silent, "Silent").changed();
             update = update | ui.checkbox(&mut self.config.no_audio_processing, "No audio processing").changed();
             let fps_changed = ui.checkbox(&mut fps_clicked, "FPS").changed();
             update = update | fps_changed;
@@ -290,7 +298,7 @@ impl eframe::App for MainWindow<'static> {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add_enabled_ui(!self.delete_window_open || !self.about_window_open || !self.import_window_open,  |ui| {
+            ui.add_enabled_ui(self.subpage == Subpage::None,  |ui| {
                 egui::containers::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
                     ui.horizontal_wrapped(|ui| {
                         self.load_next_image();
@@ -302,14 +310,18 @@ impl eframe::App for MainWindow<'static> {
                             }
                             let image_box = ui.add(egui::Button::image(image.unwrap().fit_to_exact_size(Vec2::new(self.config.icon_size, self.config.icon_size))));
                             if image_box.clicked() && self.select_current_screen.is_some() {
-                                println!("Wallpaper {} clicked.", id.clone());
+                                if self.config.debugging {
+                                    println!("Wallpaper {} clicked.", id.clone());
+                                }
                                 self.wallpaper = Some(wallpaper.wallpaper_info.clone());
                                 self.set_screen_wallpaper(self.select_current_screen.clone().unwrap(), id.clone());
                             }
                             image_box.context_menu(|ui| {
                                 if ui.button("Delete").clicked() {
-                                    Self::delete_wallpaper(wallpaper.wallpaper_info.clone());
-                                    self.wallpapers.remove(&id);
+                                    self.wallpaper = Some(wallpaper.wallpaper_info.clone());
+                                    self.subpage = Subpage::Delete;
+                                    //self.delete_wallpaper(wallpaper.wallpaper_info.clone());
+                                    //self.wallpapers.remove(&id);
 
                                     ui.close();
                                 }
