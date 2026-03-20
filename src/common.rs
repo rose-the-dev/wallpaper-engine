@@ -12,7 +12,8 @@ pub const WALLPAPER_DIR: &str = "wallpapers";
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
     /// Whether to auto start wallpaperengine.
-    pub auto_start: bool,
+    //pub auto_start: bool,
+    pub debugging: bool,
     /// Icon size
     pub icon_size: f32,
     pub silent: bool,
@@ -26,7 +27,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            auto_start: false,
+            //auto_start: false,
+            debugging: false,
             icon_size: 200.0,
             silent: false,
             no_audio_processing: false,

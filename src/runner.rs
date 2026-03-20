@@ -2,7 +2,7 @@ mod common;
 
 use crate::common::*;
 use std::process::Command;
-use ctrlc::set_handler;
+//use ctrlc::set_handler;
 
 fn main() {
     env_logger::init();
@@ -14,23 +14,24 @@ fn main() {
 
 
     let args: Vec<String> = std::env::args().collect();
+    let help: bool = args.contains(&"-h".to_string()) | args.contains(&"--help".to_string());
+    let debug: bool = args.contains(&"-d".to_string()) | args.contains(&"--debug".to_string());
 
     let mut arg_num = 0;
     for i in 1..args.len() {
         let arg = &args[i];
-        println!("{}", arg);
         let pair = arg.split('=').collect::<Vec<&str>>();
-        if pair.len() != 2 {
-            println!("Error with argument {num}, {arg}.", num=arg_num, arg=arg);
-            panic!("Error with argument {num}, {arg}", num=arg_num, arg=arg);
+
+        if pair.len() == 2 {
+            if pair[0] == "--config" {
+                config_file = pair[1];
+            }
+            else {
+                println!("Argument {num} unknown; {arg}", num=arg_num, arg=arg);
+                panic!("Argument {num} unknown; {arg}", num=arg_num, arg=arg);
+            }
         }
-        if pair[0] == "--config" {
-            config_file = pair[1];
-        }
-        else {
-            println!("Argument {num} unknown; {arg}", num=arg_num, arg=arg);
-            panic!("Argument {num} unknown; {arg}", num=arg_num, arg=arg);
-        }
+
         arg_num += 1;
     }
     if !std::fs::exists(config_file).unwrap() {
@@ -73,6 +74,12 @@ fn main() {
         proc.arg("--scaling").arg(format!("{:?}", wp.scaling).to_lowercase());
     }
     proc.arg("--clamp").arg(format!("{:?}", config.clamp).to_lowercase());
-    println!("{:?}", proc.get_args());
-    proc.output().expect("Failed to start wallpaper process.");
+    if debug {
+        println!("{:?}", proc.get_args());
+    }
+    let out = proc.output().expect("Failed to start wallpaper process.");
+    if debug {
+        println!("{:?}", out.stdout);
+    }
+    println!("{:?}", out.stderr);
 }
