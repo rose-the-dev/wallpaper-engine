@@ -66,7 +66,7 @@ fn main() {
                     // TODO: Consider other method of "restarting" service, like a non systemd dependent version if needed.
                     std::process::Command::new("systemctl").arg("--user").arg("restart").arg("wallpaper-engine.service").output().expect("Failed to restart wallpaper.");
                 }
-                "config" => {
+                "current-config" => {
                     // TODO: Requires config stuff to be finished, implement print config stuff.
                     println!("Nothing yet.");
                 }
@@ -96,7 +96,7 @@ fn help_message() {
     println!("  list-outputs                   Get outputs.");
     println!("  list-wallpapers                Get wallpapers.");
     println!("  restart                        Restart the wallpaper daemon.");
-    println!("  config                         Print out current configuration.");
+    println!("  current-config                 Print out current configuration used within wallpaper-engine, not the config file.");
     println!();
     println!("Options:");
     println!("  -h, --help     print this message and exit.");
