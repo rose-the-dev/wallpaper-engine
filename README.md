@@ -21,7 +21,7 @@ Example flake.nix:
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     wallpaper-engine.url = "github:rose-the-dev/wallpaper-engine";
   };
-  outputs = inputs@{ nixpkgs, home-manager, hyprland, wallpaper-engine, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, wallpaper-engine, ... }:
   let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
@@ -56,6 +56,21 @@ Example flake.nix:
 I do have plans to create a build and install script for other distros, but right now it's nixos only.
 
 
-## Quirks
-linux-wallpaper engine for some reason plays audio only when passed with the --silent flag, I built the wrapper app with the idea that --silent makes it... silent.
-It does not.
+## Current plans
+### Makefile for manual install on other distros
+I really don't know what I am doing when it comes to packaging stuff, even on nixos.
+But that is in the works too, I need to set up an old laptop or VM to test this stuff out though.
+Also I heard rust has build and install scripts but I have no clue how these work and if they can replace makefiles, I need help in that regard :/
+
+### wallpaper-engine without linux-wallpaperengine
+Basically I have plans to implement:
+ - My own video player of sorts in wallpaper-engine.
+ - A basic scene function, with mouse events and the ability to add effects, particles and various other stuff.
+   This will be managed with a programming language (probably lua but I am open to other stuff).
+
+### WallpaperHub
+A place to be able to download and update wallpapers, this is the reason why I don't want a dependency on linux-wallpaperengine (And steam wp engine).
+However I am sure most of these *could* be converted as most are simple backdrops or videos, however, I will not be creating a converter.
+
+### Nixos module (non home-manager)
+This is low priority but I will make a non home manager version in the flake, for the few people without home-manager.
