@@ -1,5 +1,5 @@
 #with import <nixpkgs> {};
-{ pkgs, lib, makeDesktopItem, rustPlatform, linux-wallpaperengine, ... }:
+{ pkgs, lib, makeDesktopItem, rustPlatform, ... }:
 
 rustPlatform.buildRustPackage {
   pname = "wallpaper-engine";
@@ -8,23 +8,23 @@ rustPlatform.buildRustPackage {
   src = lib.cleanSource ./..;
   cargoLock = {lockFile = ../Cargo.lock;};
 
-  nativeBuildInputs = with pkgs; [ makeWrapper ];
-  buildInputs = with pkgs; [ libxcb ];
-  packages = with pkgs; [ linux-wallpaperengine ];
+  nativeBuildInputs = with pkgs; [ pkg-config makeWrapper ];
+  buildInputs = with pkgs; [ libxcb libxkbcommon libxkbcommon libxkbcommon.dev cairo cairo.dev glib ];
+  #packages = with pkgs; [ linux-wallpaperengine ];
 
   postInstall = ''
-    wrapProgram $out/bin/wallpaper-runner --prefix PATH : "${lib.makeBinPath [ linux-wallpaperengine ]}"
+    wrapProgram $out/bin/wallpaper-engine --prefix PATH : "${lib.makeBinPath [ pkgs.libxkbcommon pkgs.libGL pkgs.wayland pkgs.wayland-protocols pkgs.wayland-scanner ]}"
 
-    wrapProgram $out/bin/wallpaper-gui --prefix PATH : "${lib.makeBinPath [ pkgs.libxkbcommon pkgs.libGL pkgs.wayland pkgs.wayland-protocols pkgs.wayland-scanner ]}"
+    wrapProgram $out/bin/wallpaper-manager --prefix PATH : "${lib.makeBinPath [ pkgs.libxkbcommon pkgs.libGL pkgs.wayland pkgs.wayland-protocols pkgs.wayland-scanner ]}"
 
     mkdir -p $out/share/applications
-    cat > $out/share/applications/wallpaper-engine.desktop <<EOF
+    cat > $out/share/applications/wallpaper-manager.desktop <<EOF
         [Desktop Entry]
         Type=Application
-        Name=Wallpaper-engine
+        Name=Wallpaper-manager
         Comment=Wallpaper manager
-        Exec=$out/bin/wallpaper-gui %U
-        Icon=wallpaper-gui
+        Exec=$out/bin/wallpaper-manager %U
+        Icon=wallpaper-manager
         Terminal=false
         EOF
   '';
@@ -32,9 +32,9 @@ rustPlatform.buildRustPackage {
   # This is literally ignored for no reason.
   #desktopItem = makeDesktopItem ({
   #  name = "Wallpaper manager";
-  #  exec = "wallpaper-gui";
-  #  icon = "wallpaper-gui";
-  #  desktopName = "wallpaper-gui.desktop";
+  #  exec = "wallpaper-manager";
+  #  icon = "wallpaper-manager";
+  #  desktopName = "wallpaper-manager.desktop";
   #  comment = "Wallpaper manager";
   #  #categories = [ "Internet" ];
   #});

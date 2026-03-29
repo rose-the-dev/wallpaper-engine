@@ -4,9 +4,10 @@ with lib;
 
 let
   cfg = config.services.wallpaper-engine;
-  wallpaper-engine = pkgs.callPackage ../wallpaper-engine/default.nix { };
-  wallpaper-manager = pkgs.callPackage ../wallpaper-manager/default.nix { };
-  wallpaper-ctl = pkgs.callPackage ../wallpaper-ctl/default.nix { };
+  wallpaper-engine = pkgs.callPackage ./package.nix { };
+  #wallpaper-engine = pkgs.callPackage ../wallpaper-engine/default.nix { };
+  #wallpaper-manager = pkgs.callPackage ../wallpaper-manager/default.nix { };
+  #wallpaper-ctl = pkgs.callPackage ../wallpaper-ctl/default.nix { };
 in
 {
   options.services.wallpaper-engine = {
@@ -25,17 +26,17 @@ in
       description = "The wallpaper-engine package to use.";
     };
 
-    ctlPackage = mkOption {
-      type = types.package;
-      default = wallpaper-ctl;
-      description = "The wallpaper-engine package to use.";
-    };
+    #ctlPackage = mkOption {
+    #  type = types.package;
+    #  default = wallpaper-ctl;
+    #  description = "The wallpaper-engine package to use.";
+    #};
 
-    managerPackage = mkOption {
-      type = types.package;
-      default = wallpaper-manager;
-      description = "The wallpaper-engine package to use.";
-    };
+    #managerPackage = mkOption {
+    #  type = types.package;
+    #  default = wallpaper-manager;
+    #  description = "The wallpaper-engine package to use.";
+    #};
 
     serviceRestartMode = mkOption {
       type = types.enum [ "no" "always" "on-success" "on-failure" "on-abnormal" "on-abort" "on-watchdog" ];
@@ -57,6 +58,6 @@ in
       Install.WantedBy = [ "graphical-session.target" ];
     };
     #environment.systemPackages = [ cfg.package ];
-    home.packages = [ cfg.package cfg.ctlPackage cfg.managerPackage ];
+    home.packages = [ cfg.package ]; #cfg.ctlPackage cfg.managerPackage ];
   };
 }
