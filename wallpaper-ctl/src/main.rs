@@ -18,38 +18,64 @@ fn main() {
         return;
     }
     if version {
+        println!("Version info");
+        println!("  -wallpaper-ctl version {}", env!("CARGO_PKG_VERSION"));
+        let x = std::process::Command::new("wallpaper-engine").arg("--version").output();
+        let y = std::process::Command::new("wallpaper-manager").arg("--version").output();
+        if x.is_ok() {
+            println!("  -{:?}", x.unwrap().stdout);
+        }
+        else {
+            println!("  -Version info not found.");
+        }
+        if y.is_ok() {
+            println!("  -{:?}", y.unwrap().stdout);
+        }
+        else {
+            println!("  -Version info not found.");
+        }
         return;
     }
 
-    let mut sock = UnixStream::connect("/tmp/wallpaper-engine.sock").expect("Failed to connect to wallpaper.sock");
-    let mut sock_reader = SocketReader::new(1000);
-    match args[1].to_lowercase().as_str() {
-        "set" => {
-            ensure_parameters(&args, 2);
-            let v = format!("set>{}:{}", args[2], args[3]);
-            sock.write(v.as_bytes()).unwrap();
-            println!("{}", sock_reader.read_socket(&mut sock).unwrap());
-            //println!("{}", wallpaper_common::read_socket(&mut sock).unwrap());
+    let sock = UnixStream::connect("/tmp/wallpaper-engine.sock");
+    match sock {
+        Ok(mut sock) => {
+            let mut sock_reader = SocketReader::new(1000);
+            match args[1].to_lowercase().as_str() {
+                "set" => {
+                    ensure_parameters(&args, 2);
+                    let v = format!("set>{}:{}", args[2], args[3]);
+                    sock.write(v.as_bytes()).unwrap();
+                    println!("{}", sock_reader.read_socket(&mut sock).expect("Failed to read socket."));
+                    //println!("{}", wallpaper_common::read_socket(&mut sock).unwrap());
+                }
+                "list-outputs" => {
+                    ensure_parameters(&args, 0);
+                    sock.write(b"list-outputs>").unwrap();
+                    println!("{}", sock_reader.read_socket(&mut sock).expect("Failed to read socket."));
+                    //println!("{}", wallpaper_common::read_socket(&mut sock).unwrap());
+                }
+                "list-wallpapers" => {
+                    ensure_parameters(&args, 0);
+                    sock.write(b"list-wallpapers>").unwrap();
+                    println!("{}", sock_reader.read_socket(&mut sock).expect("Failed to read socket."));
+                    //println!("{}", wallpaper_common::read_socket(&mut sock).unwrap());
+                }
+                "restart" => {
+                    ensure_parameters(&args, 0);
+                    // TODO: Consider other method of "restarting" service, like a non systemd dependent version if needed.
+                    std::process::Command::new("systemctl").arg("--user").arg("restart").arg("wallpaper-engine.service").output().expect("Failed to restart wallpaper.");
+                }
+                "config" => {
+                    // TODO: Requires config stuff to be finished, implement print config stuff.
+                    println!("Nothing yet.");
+                }
+                _ => help_message()
+            }
         }
-        "list-outputs" => {
-            ensure_parameters(&args, 0);
-            sock.write(b"list-outputs>").unwrap();
-            println!("{}", sock_reader.read_socket(&mut sock).unwrap());
-            //println!("{}", wallpaper_common::read_socket(&mut sock).unwrap());
-        }
-        "list-wallpapers" => {
-            ensure_parameters(&args, 0);
-            sock.write(b"list-wallpapers>").unwrap();
-            println!("{}", sock_reader.read_socket(&mut sock).unwrap());
-            //println!("{}", wallpaper_common::read_socket(&mut sock).unwrap());
-        }
-        "restart" => {
-            ensure_parameters(&args, 0);
-            // TODO: Consider other method of "restarting" service, like a non systemd dependent version if needed.
-            std::process::Command::new("systemctl").arg("--user").arg("restart").arg("wallpaper-engine.service").output().expect("Failed to restart wallpaper.");
-        }
-        _ => help_message()
+        Err(_) => println!("No active wallpaper-engine instance found.")
     }
+
 }
 
 fn ensure_parameters(args: &Vec<String>, size: i32) {
@@ -66,9 +92,11 @@ fn help_message() {
     println!();
     println!("Subcommands:");
     println!("  set <display-index> <name|id>  Set wallpaper.");
+    println!("    - display-index can be 'all' to set for all monitors.");
     println!("  list-outputs                   Get outputs.");
     println!("  list-wallpapers                Get wallpapers.");
     println!("  restart                        Restart the wallpaper daemon.");
+    println!("  config                         Print out current configuration.");
     println!();
     println!("Options:");
     println!("  -h, --help     print this message and exit.");
